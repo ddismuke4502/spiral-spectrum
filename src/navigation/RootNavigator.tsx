@@ -4,11 +4,16 @@ import { TestScreen } from '../screens/TestScreen';
 import { ResultsScreen } from '../screens/ResultsScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { ResourcesScreen } from '../screens/ResourcesScreen';
+import type { DomainScore } from '../types/screener';
 
 export type RootStackParamList = {
   Welcome: undefined;
   Test: undefined;
-  Results: undefined;
+  Results: {
+    totalScore: number;
+    maxScore: number;
+    domainScores: DomainScore[];
+  };
   History: undefined;
   Resources: undefined;
 };
