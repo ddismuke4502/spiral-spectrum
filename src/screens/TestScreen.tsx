@@ -11,11 +11,11 @@ import { AnswerValue } from '../types/screener';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Test'>;
 
-const answerOptions: Array<{
+const answerOptions: {
   value: AnswerValue;
   label: string;
   description: string;
-}> = [
+}[] = [
   {
     value: 'never',
     label: 'Never true',
