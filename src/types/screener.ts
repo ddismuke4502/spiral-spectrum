@@ -25,3 +25,11 @@ export type ResultBand = {
   label: string;
   description: string;
 };
+
+export type SavedScreenerResult = {
+  id: string;
+  completedAt: string;
+  totalScore: number;
+  maxScore: number;
+  domainScores: DomainScore[];
+};

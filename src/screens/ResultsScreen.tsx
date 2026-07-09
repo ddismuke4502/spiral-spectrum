@@ -1,22 +1,24 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { RootStackParamList } from '../navigation/RootNavigator';
-import { getResultBand } from '../services/screenerScoringService';
-import { colors } from '../theme/colors';
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useCallback, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { RootStackParamList } from "../navigation/RootNavigator";
+import { getResultBand } from "../services/screenerScoringService";
+import { saveResult } from "../services/resultHistoryStorage";
+import { colors } from "../theme/colors";
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Results'>;
+type Props = NativeStackScreenProps<RootStackParamList, "Results">;
 
 function formatDomain(domain: string) {
   switch (domain) {
-    case 'sensoryMotor':
-      return 'Sensory / Motor';
-    case 'focusedInterests':
-      return 'Focused Interests';
-    case 'communication':
-      return 'Communication';
-    case 'social':
-      return 'Social';
+    case "sensoryMotor":
+      return "Sensory / Motor";
+    case "focusedInterests":
+      return "Focused Interests";
+    case "communication":
+      return "Communication";
+    case "social":
+      return "Social";
     default:
       return domain;
   }
@@ -25,9 +27,30 @@ function formatDomain(domain: string) {
 export function ResultsScreen({ navigation, route }: Props) {
   const { totalScore, maxScore, domainScores } = route.params;
   const resultBand = getResultBand(totalScore, maxScore);
+  const [hasSaved, setHasSaved] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  const handleSaveResult = useCallback(async () => {
+    if (hasSaved) {
+      return;
+    }
+
+    try {
+      await saveResult({
+        totalScore,
+        maxScore,
+        domainScores,
+      });
+
+      setHasSaved(true);
+      setSaveMessage("Result saved locally on this device.");
+    } catch {
+      setSaveMessage("Unable to save this result right now.");
+    }
+  }, [domainScores, hasSaved, maxScore, totalScore]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.heroCard}>
           <Text style={styles.eyebrow}>Educational result</Text>
@@ -44,19 +67,25 @@ export function ResultsScreen({ navigation, route }: Props) {
 
           {domainScores.map((domainScore) => {
             const percentage =
-              domainScore.maxScore === 0 ? 0 : domainScore.score / domainScore.maxScore;
+              domainScore.maxScore === 0
+                ? 0
+                : domainScore.score / domainScore.maxScore;
 
             return (
               <View key={domainScore.domain} style={styles.domainCard}>
                 <View style={styles.domainHeader}>
-                  <Text style={styles.domainName}>{formatDomain(domainScore.domain)}</Text>
+                  <Text style={styles.domainName}>
+                    {formatDomain(domainScore.domain)}
+                  </Text>
                   <Text style={styles.domainScore}>
                     {domainScore.score} / {domainScore.maxScore}
                   </Text>
                 </View>
 
                 <View style={styles.track}>
-                  <View style={[styles.fill, { width: `${percentage * 100}%` }]} />
+                  <View
+                    style={[styles.fill, { width: `${percentage * 100}%` }]}
+                  />
                 </View>
               </View>
             );
@@ -66,14 +95,35 @@ export function ResultsScreen({ navigation, route }: Props) {
         <View style={styles.disclaimerBox}>
           <Text style={styles.disclaimerTitle}>Important reminder</Text>
           <Text style={styles.disclaimerText}>
-            This result is not a medical diagnosis. It is an educational reflection summary and
-            should not replace evaluation or care from a qualified professional.
+            This result is not a medical diagnosis. It is an educational
+            reflection summary and should not replace evaluation or care from a
+            qualified professional.
           </Text>
         </View>
 
         <View style={styles.buttonGroup}>
           <Pressable
-            onPress={() => navigation.navigate('Test')}
+            onPress={handleSaveResult}
+            disabled={hasSaved}
+            style={[styles.primaryButton, hasSaved && styles.disabledButton]}
+            accessibilityRole="button"
+            accessibilityLabel="Save result to local history"
+          >
+            <Text
+              style={[
+                styles.primaryButtonText,
+                hasSaved && styles.disabledText,
+              ]}
+            >
+              {hasSaved ? "Result Saved" : "Save Result"}
+            </Text>
+          </Pressable>
+
+          {saveMessage ? (
+            <Text style={styles.saveMessage}>{saveMessage}</Text>
+          ) : null}
+          <Pressable
+            onPress={() => navigation.navigate("Test")}
             style={styles.primaryButton}
             accessibilityRole="button"
             accessibilityLabel="Retake screener"
@@ -82,7 +132,7 @@ export function ResultsScreen({ navigation, route }: Props) {
           </Pressable>
 
           <Pressable
-            onPress={() => navigation.navigate('Resources')}
+            onPress={() => navigation.navigate("Resources")}
             style={styles.secondaryButton}
             accessibilityRole="button"
             accessibilityLabel="View educational resources"
@@ -115,24 +165,24 @@ const styles = StyleSheet.create({
   eyebrow: {
     color: colors.accent,
     fontSize: 13,
-    fontWeight: '900',
-    textTransform: 'uppercase',
+    fontWeight: "900",
+    textTransform: "uppercase",
     letterSpacing: 1,
   },
   score: {
     color: colors.text,
     fontSize: 56,
-    fontWeight: '900',
+    fontWeight: "900",
   },
   maxScore: {
     color: colors.textMuted,
     fontSize: 26,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   resultLabel: {
     color: colors.text,
     fontSize: 24,
-    fontWeight: '900',
+    fontWeight: "900",
   },
   resultDescription: {
     color: colors.textMuted,
@@ -145,7 +195,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.text,
     fontSize: 22,
-    fontWeight: '900',
+    fontWeight: "900",
   },
   domainCard: {
     padding: 16,
@@ -156,28 +206,28 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   domainHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     gap: 12,
   },
   domainName: {
     color: colors.text,
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   domainScore: {
     color: colors.textMuted,
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   track: {
     height: 8,
     borderRadius: 999,
     backgroundColor: colors.surfaceSoft,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   fill: {
-    height: '100%',
+    height: "100%",
     borderRadius: 999,
     backgroundColor: colors.accent,
   },
@@ -191,7 +241,7 @@ const styles = StyleSheet.create({
   disclaimerTitle: {
     color: colors.text,
     fontSize: 17,
-    fontWeight: '900',
+    fontWeight: "900",
     marginBottom: 8,
   },
   disclaimerText: {
@@ -206,24 +256,36 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
     borderRadius: 16,
     paddingVertical: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   primaryButtonText: {
-    color: '#111111',
+    color: "#111111",
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: "900",
   },
   secondaryButton: {
     backgroundColor: colors.surfaceSoft,
     borderRadius: 16,
     paddingVertical: 16,
-    alignItems: 'center',
+    alignItems: "center",
     borderWidth: 1,
     borderColor: colors.border,
   },
   secondaryButtonText: {
     color: colors.text,
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: "800",
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  disabledText: {
+    color: colors.textMuted,
+  },
+  saveMessage: {
+    color: colors.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
   },
 });
